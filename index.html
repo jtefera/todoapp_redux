@@ -2,9 +2,381 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title></title>
+    <title> To Do App</title>
+    <!-- React, JSX and Reduxlibraries -->
+    <script src="https://fb.me/react-15.0.2.js"></script>
+    <script src="https://fb.me/react-dom-15.0.2.js"></script>
+    <script
+      src="http://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js">
+    </script>
+    <script type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.5.2/redux.js">
+    </script>
+    <script type="text/javascript"
+      src="https://wzrd.in/standalone/react-redux@latest">
+    </script>
+    <!-- Bootstrap + jQuery -->
+    <script
+      src="https://code.jquery.com/jquery-1.12.3.min.js"
+      integrity="sha256-aaODHAgvwQW1bFOGXMeX+pC4PZIPsvn2h1sArYOhgXQ="
+      crossorigin="anonymous">
+    </script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script
+      type="text/javascript"
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js">
+    </script>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <!--Babel to transpile from ES6 to ES5-->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js">
+    </script>
+    <!-- DeepFreeze and expect to make unit testing -->
+    <script src="https://wzrd.in/standalone/deep-freeze@latest"></script>
+    <script
+      src="https://wzrd.in/standalone/expect@latest">
+    </script>
+
   </head>
   <body>
+    <div id="root">
 
+    </div>
+
+    <script type="text/babel">
+
+    //actions methods
+    const toggleTodo = (id) => {
+      return {
+                type: "COMPLETE_TODO",
+                id: id
+              };
+    }
+
+    const addTodo = (text) => {
+      return {
+        type: "ADD_TODO",
+        text: text
+      }
+    }
+    const setVisibilityFilter = (filter) => {
+      return {
+        type: "SET_VISIBILITY_FILTER",
+        filter: filter
+      }
+    }
+
+
+      const todos = (state = [], action) => {
+        switch (action.type) {
+          case "ADD_TODO":
+            return state.concat([{
+              id: state.length,
+              text: action.text,
+              completed: false
+            }]);
+            break;
+          case "COMPLETE_TODO":
+            let idx = action.id;
+            return state.slice(0, idx)
+                        .concat([
+                          Object.assign({},
+                            state[idx],
+                            {completed: true}
+                          )
+                        ])
+                        .concat(state.slice(idx+1));
+          default:
+            return state;
+        }
+      }
+
+      const testTodos = () => {
+        //ADD TODO TEST
+        let stateBefore = [],
+            stateAfter = [
+              {
+                id: 0,
+                text: "Learn Redux",
+                completed: false
+              }
+            ],
+            action = {
+              type: "ADD_TODO",
+              text: "Learn Redux"
+            };
+         deepFreeze(stateBefore);
+         deepFreeze(stateAfter);
+         deepFreeze(action);
+
+         expect(todos(stateBefore, action)).toEqual(stateAfter);
+         //Complete TODO test
+         let stateBef2 = [
+               {
+                 id: 0,
+                 text: "Learn Redux",
+                 completed: false
+               },
+               {
+                 id: 1,
+                 text: "Make Money",
+                 completed: false
+               }
+             ],
+            stateAft2 = [
+              {
+                id: 0,
+                text: "Learn Redux",
+                completed: false
+              },
+              {
+                id: 1,
+                text: "Make Money",
+                completed: true
+              }
+            ],
+            action2 = {
+              type: "COMPLETE_TODO",
+              id: 1
+            };
+
+            deepFreeze(stateBef2);
+            deepFreeze(stateAft2);
+            deepFreeze(action2);
+
+            expect(todos(stateBef2, action2)).toEqual(stateAft2);
+      }
+
+      const visibilityFilter = (state="SHOW_ALL", action) => {
+        switch (action.type) {
+          case "SET_VISIBILITY_FILTER":
+            return action.filter
+            break;
+          default:
+            return state;
+        }
+      }
+
+      const testVisibilityFilter = () => {
+        let stateBefore = "SHOW_ALL",
+            stateAfter = "SHOW_COMPLETED",
+            action = {
+              type: "SET_VISIBILITY_FILTER",
+              filter: "SHOW_COMPLETED"
+            }
+        deepFreeze(action);
+        deepFreeze(stateBefore);
+
+        expect(visibilityFilter(stateBefore, action)).toEqual(stateAfter);
+      }
+      const tests = () => {
+        testTodos();
+        testVisibilityFilter();
+        console.log("All tests passed");
+      }
+      let todoApp = Redux.combineReducers({todos, visibilityFilter}),
+          store = Redux.createStore(todoApp);
+
+      //Initial State
+      console.log(store.getState())
+
+      //Everytime that the state changes, we want the state being
+      //printet in the console. The callback to suscribe is called for
+      //every state change.
+      //The return for the suscribe function is the unsubscribe function
+      let unsubscribe = store.subscribe(() => {
+        console.log(store.getState())
+      })
+
+      //Let us dispatch some actions:
+      store.dispatch({
+        type: "ADD_TODO",
+        text: "Primer Todo"
+      })
+      store.dispatch({
+        type: "ADD_TODO",
+        text: "Segundo ToDo"
+      })
+      store.dispatch({
+        type: "COMPLETE_TODO",
+        id: 0
+      })
+      store.dispatch({
+        type: "SET_VISIBILITY_FILTER",
+        filter: "SHOW_COMPLETED"
+      })
+
+      //REACT
+      const PropTypes = React.PropTypes
+      const connect = reactRedux.connect
+      //Presentational componentns
+      const Todo = ({text, completed, onClick}) => (
+        <li
+          onClick = {onClick}
+          styles = {{
+              textDecoration: completed ? "line-through" : "none"
+          }}
+        >
+          {text}
+        </li>
+      )
+
+      Todo.propTypes = {
+        onClick: PropTypes.func.isRequired,
+        completed: PropTypes.bool.isRequired,
+        text: PropTypes.string.isRequired
+      }
+
+      const TodoList = ({todos, onTodoClick}) => (
+        <ul>
+          {todos.map(todo => (
+            <Todo
+              key={todo.id}
+              text={todo.text}
+              onClick={() => onTodoClick(todo.id)}
+            />
+          ))}
+        </ul>
+      )
+
+      TodoList.propTypes = {
+        todos: PropTypes.arrayOf(PropTypes.shape({
+          id: PropTypes.number.isRequired,
+          text: PropTypes.string.isRequired,
+          completed: PropTypes.bool.isRequired
+        }).isRequired).isRequired,
+        onTodoClick: PropTypes.func.isRequired
+      }
+
+      const Link = ({active, children, onClick}) => {
+        if(active){
+          return <span>{children}</span>
+        }
+        return (
+          <a
+            href="#"
+            onClick={e => {
+              e.preventDefault();
+              onClick();
+            }}
+          >
+            {children}
+          </a>
+        )
+      }
+
+      Link.propTypes = {
+        active: PropTypes.bool.isRequired,
+        children: PropTypes.node.isRequired,
+        onClick: PropTypes.func.isRequired
+      }
+
+      const Footer = () => {
+        <p>
+          Show
+          {" "}
+          <FilterLink filter="SHOW_ALL">
+            All
+          </FilterLink>
+          {", "}
+          Show Completed
+          <FilterLink filter="SHOW_ACTIVE">
+            Active
+          </FilterLink>
+          {", "}
+          <FilterLink filter="SHOW_COMPLETED">
+            Completed
+          </FilterLink>
+        </p>
+      }
+
+      const App = () => {
+        <div>
+          <AddTodo />
+          <VisibleTodoList />
+          <Footer />
+        </div>
+      }
+
+      //CONTAINER COMPONENTS
+
+      //Building the VisibleTodoList conteiner that whill contain
+      //the TodoList presenter to which it will pass as a constructor
+      //the todos that fullfill the filter.
+      //To build the container we will use the conect function from React.
+      //We will need the specify the function that will map the redux
+      //state to the props passed to the TodoList. That function will be called
+      //mapStateToPropsTodo
+      const getVisibleTodos = (todos, filter) => {
+        if(filter === "SHOW_ALL") {
+          return todos
+        }
+        if(filter === "SHOW_ACTIVE") {
+          return todos.filter(todo => !todo.completed)
+        }
+        if(filter === "SHOW_COMPLETED") {
+          return todos.filter(todo => todo.completed)
+        }
+      }
+
+      const mapStateToPropsTodo = (state) => {
+        return {
+          todos: getVisibleTodos(state.todos, state.visibilityFilter)
+        }
+      }
+      //We will also need a function that maps the store actions from Redux
+      //to the functions that we will pass to the TodosList as props
+      const mapDispatchToPropsTodo = (dispatch) => {
+        return {
+          onTodoClick: (id) => {
+            dispatch(toggleTodo(id))
+          }
+        }
+      }
+      //TodoList container
+      const VisibleTodoList = connect(
+        mapStateToPropsTodo,
+        mapDispatchToPropsTodo
+      )(TodoList)
+
+      //FilterLink container
+      const mapStateToPropsFilter = (state, ownProps) => {
+        return {
+          active: ownProps.filter === state.visibilityFilter
+        }
+      }
+      const mapDispatchToPropsFilter = (dispatch, ownProps) => {
+        return dispatch(setVisibilityFilter(ownProps.filter));
+      }
+      const FilterLink = connect(
+        mapStateToPropsFilter,
+        mapDispatchToPropsFilter
+      )(Link);
+
+      let AddTodo = (dispatch) => {
+        let input
+        return (
+          <form>
+            <input ref={node => {
+              input = node
+            }} />
+            <button onClick={() => {
+                dispatch(AddTodo(input.value))
+            }}>
+              Add Todo
+            </button>
+          </form>
+        )
+      }
+      AddTodo = connect()(AddTodo)
+
+      ReactDOM.render(
+        <App />,
+        document.getElementById("root")
+      )
+    </script>
   </body>
 </html>
